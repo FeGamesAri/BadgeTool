@@ -1,0 +1,48 @@
+-- Services
+local BadgeService = game:GetService("BadgeService")
+local DataStoreService = game:GetService("DataStoreService")
+
+-- Settings
+local BadgeID = 123456789 -- Replace with your badge ID
+local ToolName = "YourTool" -- Name of the tool in ServerStorage
+
+-- DataStore to save player tool ownership
+local toolDataStore = DataStoreService:GetDataStore("PlayerTools")
+
+-- Function to give a tool
+local function giveTool(player)
+    local tool = game.ServerStorage:FindFirstChild(ToolName)
+    if tool then
+        local toolClone = tool:Clone()
+        toolClone.Parent = player.Backpack -- Add the tool to the player's backpack
+        toolClone.Parent = player.StarterGear -- Add it to StarterGear to persist after death
+    end
+end
+
+-- Function to check and grant the tool
+local function checkAndGrantTool(player)
+    -- Check DataStore first
+    local success, hasTool = pcall(function()
+        return toolDataStore:GetAsync(player.UserId)
+    end)
+    
+    if success and hasTool then
+        giveTool(player) -- Give tool if it's already owned
+        return
+    end
+    
+    -- Check if the player has the badge
+    local hasBadge = BadgeService:UserHasBadgeAsync(player.UserId, BadgeID)
+    if hasBadge then
+        giveTool(player) -- Give tool
+        -- Save the tool ownership in the DataStore
+        pcall(function()
+            toolDataStore:SetAsync(player.UserId, true)
+        end)
+    end
+end
+
+-- PlayerAdded Event
+game.Players.PlayerAdded:Connect(function(player)
+    player.CharacterAdded:Connect(function()
+    
